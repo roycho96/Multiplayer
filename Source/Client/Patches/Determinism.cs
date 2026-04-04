@@ -684,6 +684,67 @@ namespace Multiplayer.Client.Patches
         }
     }
 
+    /// <summary>
+    /// Round stat calculation results to eliminate floating-point non-determinism.
+    /// Different CPUs/JITs can produce subtly different float results for the same
+    /// calculation chain. Rounding to 4 decimal places removes these differences.
+    /// </summary>
+    [HarmonyPatch(typeof(StatWorker), nameof(StatWorker.GetValue), typeof(StatRequest), typeof(bool))]
+    static class RoundStatWorkerGetValue
+    {
+        static void Postfix(ref float __result)
+        {
+            if (Multiplayer.Client != null && !Multiplayer.InInterface)
+                __result = Mathf.Round(__result * 10000f) / 10000f;
+        }
+    }
+
+    /// <summary>
+    /// Round workDone accumulation in construction to prevent float drift.
+    /// Inserts rounding before the stfld to Frame.workDone, so the value
+    /// written is always rounded. This prevents tiny FP differences from
+    /// accumulating over ticks (e.g. 99.999999 vs 100.000001 → desync).
+    /// </summary>
+    [HarmonyPatch]
+    static class RoundConstructionWorkDone
+    {
+        static readonly FieldInfo WorkDoneField = AccessTools.Field(typeof(Frame), nameof(Frame.workDone));
+
+        static IEnumerable<MethodBase> TargetMethods()
+        {
+            // The tick action lambda inside JobDriver_ConstructFinishFrame.MakeNewToils
+            yield return MpMethodUtil.GetLambda(typeof(JobDriver_ConstructFinishFrame), nameof(JobDriver_ConstructFinishFrame.MakeNewToils), lambdaOrdinal: 1);
+        }
+
+        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> insts)
+        {
+            var patched = 0;
+
+            foreach (var ci in insts)
+            {
+                // Before stfld Frame.workDone, insert rounding on the value already on the stack.
+                // IL before patch: [obj] [value after add] → stfld workDone
+                // IL after patch:  [obj] [value after add] → call RoundWork → stfld workDone
+                if (ci.opcode == OpCodes.Stfld && ci.operand as FieldInfo == WorkDoneField)
+                {
+                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(RoundConstructionWorkDone), nameof(RoundWork)));
+                    patched++;
+                }
+
+                yield return ci;
+            }
+
+            const int expectedPatches = 1;
+            if (patched != expectedPatches)
+                Log.Warning($"Patching construction workDone rounding: expected {expectedPatches} patches, got {patched}. Was the original method changed?");
+        }
+
+        public static float RoundWork(float val)
+        {
+            return Mathf.Round(val * 10000f) / 10000f;
+        }
+    }
+
     [HarmonyPatch(typeof(PawnsArrivalModeWorker_EmergeFromWater), nameof(PawnsArrivalModeWorker_EmergeFromWater.Arrive))]
     static class PawnsArrivalModeWorker_EmergeFromWater_FixCurrentMapUsage
     {
