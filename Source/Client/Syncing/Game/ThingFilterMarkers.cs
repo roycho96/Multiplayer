@@ -34,6 +34,12 @@ static class ThingFilterMarkers
         // Because of that, we check if the parent is not null.
         if (selParent == null || selThing is Thing { Map: null } or ThingComp { parent: { Map: null } })
             return;
+        // Guard: don't create a wrapper when there's no filter to sync.
+        // Some mod IStoreSettingsParent impls return null from GetStoreSettings().
+        // Without this, downstream SyncThingFilters helpers crash with NRE on
+        // context.Filter.SetAllow() when the synced command executes on all peers.
+        if (selParent.GetStoreSettings()?.filter == null)
+            return;
         DrawnThingFilter = new TabStorageWrapper(selParent);
     }
 

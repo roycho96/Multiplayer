@@ -882,8 +882,12 @@ namespace Multiplayer.Client
                         if (index == ushort.MaxValue) {
                             return;
                         }
-                        ThingWithComps parent = data.Read<ThingWithComps>();
-                        if (parent == null) {
+                        var parentThing = data.Read<Thing>();
+                        if (parentThing is not ThingWithComps parent) {
+                            // Thing exists but is not ThingWithComps — skip to
+                            // avoid InvalidCastException (can happen when state
+                            // diverges and a different Thing inherits the ID).
+                            data.Read<ushort>(); // consume remaining compIndex
                             return;
                         }
                         Type compType = thingCompTypes[index];
