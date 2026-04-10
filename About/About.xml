@@ -1,16 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ModMetaData>
   <packageId>rwmt.Multiplayer</packageId>
-  <name>Multiplayer</name>
+  <name>Multiplayer (roycho96 fork)</name>
   <supportedVersions>
     <li>1.6</li>
   </supportedVersions>
-  <author>RimWorld Multiplayer Team</author>
-  <url>https://github.com/rwmt/Multiplayer</url>
-  <description>&lt;b&gt;Important: This mod should be placed right below Core and expansions in the mod list to work properly!
-Requires RimWorld >= 1.6.4491&lt;/b&gt;\n
-Multiplayer mod for RimWorld.
-    
+  <author>RimWorld Multiplayer Team (forked by roycho96)</author>
+  <url>https://github.com/roycho96/Multiplayer</url>
+  <description>&lt;b&gt;[FORK] Private fork of rwmt/Multiplayer with extra desync fixes for hanne's MP group.&lt;/b&gt;
+Original: https://github.com/rwmt/Multiplayer (MIT, see LICENSE)
+This fork: https://github.com/roycho96/Multiplayer
+
+Added on top of upstream master:
+- Float non-determinism fix (StatWorker.GetValue + Frame.workDone decimal rounding via transpiler)
+- TabStorageWrapper NRE guard at wrapper creation + ThingComp sync InvalidCastException pattern guard
+- Designator_Plan_Add SelectedPlan UI-state leak fix (Desync-24): serialize issuer's SelectedPlan, route reads/writes through ThreadStatic PlanCommandContext during command replay
+
+⚠ Same packageId as upstream — do NOT subscribe to both. Unsubscribe the original workshop Multiplayer before enabling this fork.
+
+Original description:
+&lt;b&gt;Place right below Core and expansions. Requires RimWorld >= 1.6.4491.&lt;/b&gt;
 FAQ - https://hackmd.io/@rimworldmultiplayer/docs/
 Discord - https://discord.gg/S4bxXpv
   </description>
