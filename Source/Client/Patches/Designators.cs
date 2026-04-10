@@ -123,7 +123,13 @@ namespace Multiplayer.Client
                 SyncSerialization.WriteSync(data, Find.Selector.SelectedZone);
 
             if (designator is Designator_Plan_Add addDesignator)
+            {
                 SyncSerialization.WriteSync(data, addDesignator.colorDef);
+                // Desync-24 fix: serialize the issuer's SelectedPlan so every
+                // client replays PlanCells against the same branch, instead
+                // of reading per-client Find.Selector.SelectedPlan UI state.
+                SyncSerialization.WriteSync(data, Find.Selector.SelectedPlan);
+            }
 
             if (designator is Designator_Plan_Copy copyDesignator)
                 SyncSerialization.WriteSync(data, copyDesignator.cells);

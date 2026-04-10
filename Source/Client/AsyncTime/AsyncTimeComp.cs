@@ -367,6 +367,16 @@ namespace Multiplayer.Client
                 if (designator is Designator_Plan_Add designatorPlanAdd)
                 {
                     designatorPlanAdd.colorDef = SyncSerialization.ReadSync<ColorDef>(data);
+
+                    // Desync-24 fix: route Designator_Plan_Add.SelectedPlan
+                    // reads/writes through PlanCommandContext during replay
+                    // so every client sees the command issuer's selection
+                    // instead of their local Find.Selector.SelectedPlan.
+                    // See Multiplayer/Source/Client/Patches/PlanCommandContext.cs.
+                    global::Multiplayer.Client.Patches.PlanCommandContext.overridePlan =
+                        SyncSerialization.ReadSync<Plan>(data);
+                    global::Multiplayer.Client.Patches.PlanCommandContext.replaying = true;
+
                     designator = designatorPlanAdd;
                 }
 
@@ -400,6 +410,12 @@ namespace Multiplayer.Client
                     Designator_AreaAllowed.selectedArea = prevArea.Value.Inner;
 
                 DesignatorInstall_SetThingToInstall.thingToInstall = null;
+
+                // Desync-24 fix: clear Plan replay context so subsequent
+                // non-replay reads of Designator_Plan_Add.SelectedPlan fall
+                // through to vanilla (Find.Selector.SelectedPlan).
+                global::Multiplayer.Client.Patches.PlanCommandContext.replaying = false;
+                global::Multiplayer.Client.Patches.PlanCommandContext.overridePlan = null;
             }
 
             var mode = SyncSerialization.ReadSync<DesignatorMode>(data);
