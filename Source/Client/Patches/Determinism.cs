@@ -48,7 +48,21 @@ namespace Multiplayer.Client.Patches
     [HarmonyPatch(typeof(Pawn_MeleeVerbs), nameof(Pawn_MeleeVerbs.TryGetMeleeVerb))]
     static class TryGetMeleeVerbPatch
     {
-        static bool Cancel => Multiplayer.Client != null && Multiplayer.InInterface;
+        // Desync-56 (tick 6701645): the old guard used only Multiplayer.InInterface.
+        // InInterface is already false when ExecutingCmds is true (see Multiplayer.cs), BUT
+        // the call from TryTakeOrderedJob on the local client that issued the order could reach
+        // this patch while InInterface is transitioning / already false on the local peer yet
+        // true on the host/arbiter peer — producing asymmetric Rand consumption from
+        // ChooseMeleeVerb (4 Rand.Chance calls on one peer, 0 on the other).
+        //
+        // Fix: if we are currently replaying a synced command (ExecutingCmds == true) we MUST
+        // let ChooseMeleeVerb run on ALL peers so Rand draws stay symmetric.  Only skip when
+        // the call is clearly from a pure UI/preview context (InInterface == true, which by
+        // definition already implies ExecutingCmds == false).
+        static bool Cancel =>
+            Multiplayer.Client != null
+            && !Multiplayer.ExecutingCmds   // never skip during synced command replay
+            && Multiplayer.InInterface;     // skip only in UI/preview path
 
         static bool Prefix()
         {
