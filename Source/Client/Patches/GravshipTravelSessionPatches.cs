@@ -130,9 +130,21 @@ namespace Multiplayer.Client.Patches
         {
             var gravshipController = Find.GravshipController;
 
-            if (landingMarker == null || landingMarker.Tile == null)
+            // Desync-60 fix: GravshipLandingMarker.GravshipRotation getter dereferences
+            // marker.gravship (return gravship.Rotation;). If gravship is null on one peer
+            // only, BeginLanding throws NRE asymmetrically and desyncs. Also guard the
+            // controller. Both peers must early-return on identical conditions so no Rand
+            // is consumed on either side.
+            //
+            // LIMITATION: this guard only prevents the NRE. It assumes SyncMethod
+            // serialization restores marker.gravship identically on both peers — if
+            // upstream state drift has already made gravship null on one side and
+            // non-null on the other, the early-return fires asymmetrically and desync
+            // still occurs (with the error logged for diagnosis). Root cause of such
+            // state drift must be investigated separately if it recurs.
+            if (landingMarker == null || landingMarker.Tile == null || landingMarker.gravship == null || gravshipController == null)
             {
-                MpLog.Error($"[MP] SyncConfirmGravshipLanding: Marker [{landingMarker != null}] Tile [{landingMarker?.Tile != null}].");
+                MpLog.Error($"[MP] SyncBeginLanding skipped: Marker [{landingMarker != null}] Tile [{landingMarker?.Tile != null}] Gravship [{landingMarker?.gravship != null}] Controller [{gravshipController != null}].");
                 return;
             }
 
