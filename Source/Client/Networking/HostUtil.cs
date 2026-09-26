@@ -216,7 +216,9 @@ namespace Multiplayer.Client
             if (arbiterNet == null) throw new Exception("Failed to setup Arbiter network.");
             Multiplayer.LocalServer.netManagers.Add(arbiterNet);
 
-            string args = $"-batchmode -nographics -arbiter -logfile arbiter_log.txt -connect=127.0.0.1:{arbiterNet.Port}";
+            // Windows still needs a graphics device to initialize game assets.
+            string graphicsArg = Application.platform == RuntimePlatform.WindowsPlayer ? "" : " -nographics";
+            string args = $"-batchmode{graphicsArg} -arbiter -logfile arbiter_log.txt -connect=127.0.0.1:{arbiterNet.Port}";
 
             if (GenCommandLine.TryGetCommandLineArg("savedatafolder", out string saveDataFolder))
                 args += $" \"-savedatafolder={saveDataFolder}\"";
@@ -233,10 +235,14 @@ namespace Multiplayer.Client
 
             try
             {
-                Multiplayer.session.arbiter = Process.Start(
-                    arbiterInstancePath,
-                    args
-                );
+                Multiplayer.session.arbiter = Process.Start(new ProcessStartInfo
+                {
+                    FileName = arbiterInstancePath,
+                    Arguments = args,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    WindowStyle = ProcessWindowStyle.Hidden
+                });
             }
             catch (Exception ex)
             {

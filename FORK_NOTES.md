@@ -11,6 +11,7 @@
 - 물고기 그림자를 유지하며 셀 선택을 안정화한다. 고장 판정과 전력 계산은 실제 소비 목록을 MP 시뮬레이션에서 정렬한다.
 - storage filter·설치 대상·gravship marker를 확인하고 원래 다중 셀 Designator 동작을 유지한다.
 - 건설 workDone의 기존 반올림은 MP에만 적용한다. 모든 stat의 반올림이나 cross-CPU 결정성 보장은 포함하지 않는다.
+- Windows arbiter는 `-batchmode`로 창을 숨겨 실행하면서 그래픽 초기화를 허용한다. 1.6.4871에서 `-nographics`로 인한 texture atlas 초기화 오류를 재현했기 때문이다. 다른 운영체제의 기존 옵션은 유지하며, Windows arbiter에는 그래픽 장치와 추가 graphics memory가 필요하다.
 - Compat의 광범위한 vanilla tick RNG 격리, 전역 Job ID rollback, 일반 NRE 억제는 포함하지 않는다.
 
 ## 기존 게임 이동
