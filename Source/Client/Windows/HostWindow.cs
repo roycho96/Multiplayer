@@ -413,6 +413,13 @@ namespace Multiplayer.Client
 
         private void TryHost()
         {
+            if (file is { replay: true })
+            {
+                var replay = Replay.ForLoading(file.file);
+                if (!replay.LoadInfo() || !ForkCompatibility.CheckReplay(replay.info.protocol))
+                    return;
+            }
+
             var settings = MpUtil.ShallowCopy(serverSettings, new ServerSettings());
 
             if (settings.direct && !TryParseEndpoints(settings))
@@ -482,6 +489,8 @@ namespace Multiplayer.Client
 
         static bool TryStartLocalServer(ServerSettings settings)
         {
+            if (!ForkCompatibility.CheckMods())
+                return false;
             var localServer = new MultiplayerServer(settings);
             var success = true;
 

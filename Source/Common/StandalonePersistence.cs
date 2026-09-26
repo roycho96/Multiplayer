@@ -20,6 +20,7 @@ public class StandalonePersistence
     private string SessionPath => Path.Combine(SavedDir, "session.dat");
     private string InfoPath => Path.Combine(SavedDir, "info.xml");
     private string StatePath => Path.Combine(SavedDir, "state.bin");
+    private string ProtocolPath => Path.Combine(SavedDir, "protocol.bin");
 
     public StandalonePersistence(string baseDir)
     {
@@ -42,9 +43,14 @@ public class StandalonePersistence
     /// </summary>
     public void SeedFromSaveZip(string zipPath)
     {
-        EnsureDirectories();
-
         using var zip = ZipFile.OpenRead(zipPath);
+        var infoEntry = zip.GetEntry("info")
+            ?? throw new InvalidDataException("Replay metadata is required before importing a standalone save.");
+        var infoBytes = ReadEntry(infoEntry);
+        var info = ReplayInfo.Read(infoBytes);
+        info.EnsureCompatibleProtocol();
+
+        EnsureDirectories();
 
         // World save
         var worldEntry = zip.GetEntry("world/000_save");
@@ -75,22 +81,9 @@ public class StandalonePersistence
                 AtomicWrite(Path.Combine(MapsDir, $"{mapId}_cmds.dat"), ReadEntry(entry));
         }
 
-        // Info/metadata
-        var infoEntry = zip.GetEntry("info");
-        if (infoEntry != null)
-        {
-            var infoBytes = ReadEntry(infoEntry);
-            AtomicWrite(InfoPath, infoBytes);
-
-            try
-            {
-                WritePersistedTick(GetLatestTick(ReplayInfo.Read(infoBytes)));
-            }
-            catch (Exception e)
-            {
-                ServerLog.Error($"Failed to seed persisted tick from info.xml: {e.Message}");
-            }
-        }
+        AtomicWrite(InfoPath, infoBytes);
+        WritePersistedTick(GetLatestTick(info));
+        WriteProtocol();
 
         // Session data (empty for replay format, but create the file)
         AtomicWrite(SessionPath, Array.Empty<byte>());
@@ -105,6 +98,8 @@ public class StandalonePersistence
     {
         if (!File.Exists(WorldPath))
             return null;
+
+        var info = ReadCompatibleMetadata();
 
         server.worldData.savedGame = File.ReadAllBytes(WorldPath);
 
@@ -147,14 +142,6 @@ public class StandalonePersistence
             server.worldData.mapCmds[-1] = new List<byte[]>();
         }
 
-        // Load replay info for metadata
-        ReplayInfo? info = null;
-        if (File.Exists(InfoPath))
-        {
-            try { info = ReplayInfo.Read(File.ReadAllBytes(InfoPath)); }
-            catch (Exception e) { ServerLog.Error($"Failed to read info.xml: {e.Message}"); }
-        }
-
         var loadedTick = ReadPersistedTick() ?? GetLatestTick(info);
         server.gameTimer = loadedTick;
         server.startingTimer = loadedTick;
@@ -175,6 +162,7 @@ public class StandalonePersistence
     public void WriteJoinPoint(WorldData worldData, int tick)
     {
         EnsureDirectories();
+        WriteProtocol();
 
         if (worldData.savedGame != null)
             AtomicWrite(WorldPath, worldData.savedGame);
@@ -211,6 +199,7 @@ public class StandalonePersistence
     public void WriteWorldSnapshot(byte[] compressedWorldData, byte[] sessionData, int tick)
     {
         EnsureDirectories();
+        WriteProtocol();
         AtomicWrite(WorldPath, compressedWorldData);
         AtomicWrite(SessionPath, sessionData);
         WritePersistedTick(tick);
@@ -283,6 +272,27 @@ public class StandalonePersistence
                 File.Delete(path);
         }
     }
+
+    private ReplayInfo? ReadCompatibleMetadata()
+    {
+        var info = File.Exists(InfoPath) ? ReplayInfo.Read(File.ReadAllBytes(InfoPath)) : null;
+        info?.EnsureCompatibleProtocol();
+
+        if (File.Exists(ProtocolPath))
+        {
+            var bytes = File.ReadAllBytes(ProtocolPath);
+            if (bytes.Length != sizeof(int) || BitConverter.ToInt32(bytes, 0) != MpVersion.Protocol)
+                throw new InvalidDataException("Standalone save protocol does not match this Multiplayer fork.");
+        }
+        else if (info == null)
+        {
+            throw new InvalidDataException("Standalone save protocol is unknown. Import a replay created by this Multiplayer fork.");
+        }
+
+        return info;
+    }
+
+    private void WriteProtocol() => AtomicWrite(ProtocolPath, BitConverter.GetBytes(MpVersion.Protocol));
 
     private void WritePersistedTick(int tick)
     {

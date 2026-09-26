@@ -13,6 +13,9 @@ namespace Multiplayer.Client
     {
         public static void TryConnectWithWindow(IConnector connector, bool returnToServerBrowser = true)
         {
+            if (!ForkCompatibility.CheckMods())
+                return;
+
             var (conn, window) = connector.Connect(Multiplayer.username);
 
             Multiplayer.session = new MultiplayerSession

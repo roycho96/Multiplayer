@@ -23,6 +23,12 @@ public class ReplayInfo
     public XmlBool asyncTime;
     public bool multifaction;
 
+    public void EnsureCompatibleProtocol()
+    {
+        if (protocol != MpVersion.Protocol)
+            throw new InvalidDataException($"Replay protocol {protocol} does not match this Multiplayer fork ({MpVersion.Protocol}).");
+    }
+
     public static byte[] Write(ReplayInfo info)
     {
         var stream = new MemoryStream();

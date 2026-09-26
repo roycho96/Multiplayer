@@ -59,6 +59,10 @@ namespace Multiplayer.Client
 
         public GameDataSnapshot LoadGameData(int sectionId)
         {
+            if (info == null)
+                throw new InvalidDataException("Replay metadata must be loaded before reading commands.");
+            info.EnsureCompatibleProtocol();
+
             var mapCmdsDict = new Dictionary<int, List<ScheduledCommand>>();
             var mapDataDict = new Dictionary<int, byte[]>();
 
@@ -121,6 +125,10 @@ namespace Multiplayer.Client
 
         public static void LoadReplay(FileInfo file, bool toEnd = false, Action after = null, Action cancel = null, string simTextKey = null, bool showTimeline = true)
         {
+            var replay = ForLoading(file);
+            if (!replay.LoadInfo() || !ForkCompatibility.CheckReplay(replay.info.protocol) || !ForkCompatibility.CheckMods())
+                return;
+
             var session = new MultiplayerSession
             {
                 client = new ReplayConnection(),
@@ -129,9 +137,6 @@ namespace Multiplayer.Client
 
             Multiplayer.session = session;
             session.client.ChangeState(ConnectionStateEnum.ClientPlaying);
-
-            var replay = ForLoading(file);
-            replay.LoadInfo();
 
             var sectionIndex = toEnd ? (replay.info.sections.Count - 1) : 0;
             session.dataSnapshot = replay.LoadGameData(sectionIndex);

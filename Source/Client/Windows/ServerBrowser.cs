@@ -286,6 +286,9 @@ namespace Multiplayer.Client
 
         public static void CheckGameVersionAndMods(SaveFile file, Action action)
         {
+            if (file.replay && !ForkCompatibility.CheckReplay(file.protocol))
+                return;
+
             ScribeMetaHeaderUtility.lastMode = ScribeMetaHeaderUtility.ScribeHeaderMode.Map;
             ScribeMetaHeaderUtility.loadedGameVersion = file.rwVersion;
             ScribeMetaHeaderUtility.loadedModIdsList = file.modIds.ToList();

@@ -7,6 +7,7 @@ namespace Tests;
 public class RecordingConnection : ConnectionBase
 {
     public List<Packets> SentPackets { get; } = new();
+    public ServerDisconnectPacket? LastGoodbye { get; private set; }
 
     public RecordingConnection(string username)
     {
@@ -23,5 +24,8 @@ public class RecordingConnection : ConnectionBase
         SentPackets.Add((Packets)(raw[0] & 0x3F));
     }
 
-    protected override void OnClose(ServerDisconnectPacket? goodbye) { }
+    protected override void OnClose(ServerDisconnectPacket? goodbye)
+    {
+        LastGoodbye = goodbye;
+    }
 }

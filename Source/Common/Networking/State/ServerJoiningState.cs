@@ -14,7 +14,8 @@ public class ServerJoiningState : AsyncConnectionState
 
     protected override async Task RunState()
     {
-        HandleProtocol(await TypedPacket<ClientProtocolPacket>());
+        if (!HandleProtocol(await TypedPacket<ClientProtocolPacket>()))
+            return;
         HandleUsername(await TypedPacket<ClientUsernamePacket>());
 
         while (await Server.InitDataTask() is null && await EndIfDead())
@@ -40,10 +41,13 @@ public class ServerJoiningState : AsyncConnectionState
         connection.ChangeState(ConnectionStateEnum.ServerLoading);
     }
 
-    private void HandleProtocol(ClientProtocolPacket packet)
+    private bool HandleProtocol(ClientProtocolPacket packet)
     {
         if (packet.protocolVersion != MpVersion.Protocol)
+        {
             Player.Disconnect(MpDisconnectReason.Protocol, ByteWriter.GetBytes(MpVersion.Version, MpVersion.Protocol));
+            return false;
+        }
         else
         {
             Player.SendPacket(new ServerProtocolOkPacket(Server.settings.hasPassword, Server.IsStandaloneServer)
@@ -59,6 +63,7 @@ public class ServerJoiningState : AsyncConnectionState
                 connection.Send(new ServerBootstrapPacket(true, settingsMissing, saveMissing));
             }
         }
+        return true;
     }
 
     private void HandleUsername(ClientUsernamePacket packet)

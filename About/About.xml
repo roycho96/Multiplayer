@@ -1,19 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ModMetaData>
   <packageId>rwmt.Multiplayer</packageId>
-  <name>Multiplayer</name>
+  <name>Multiplayer (roycho96 fork)</name>
   <supportedVersions>
     <li>1.6</li>
   </supportedVersions>
-  <author>RimWorld Multiplayer Team</author>
-  <url>https://github.com/rwmt/Multiplayer</url>
+  <author>RimWorld Multiplayer Team (forked by roycho96)</author>
+  <url>https://github.com/roycho96/Multiplayer</url>
   <modVersion></modVersion> <!-- filled out by workshop_bundler.sh -->
-  <description>&lt;b&gt;Important: This mod should be placed right below Core and expansions in the mod list to work properly!
-Requires RimWorld >= 1.6.4491&lt;/b&gt;\n
-Multiplayer mod for RimWorld.
-    
+  <description>roycho96 public fork of RimWorld Multiplayer, based on upstream dev e760d30.
+
+Retains the original team's work and license. Fork source: https://github.com/roycho96/Multiplayer
+
+This build uses a separate network and replay protocol. All players must use the same fork build and mod versions. Use revision 1 of the roycho96 Multiplayer Compatibility fork when compatibility patches are needed.
+Older multiplayer replays require their original mod versions. Save to a single-player .rws file before moving an existing game to this build.
+
+Place below Core, expansions, Harmony and Prepatcher. Enable only one mod with packageId rwmt.Multiplayer.
+
 FAQ - https://hackmd.io/@rimworldmultiplayer/docs/
-Discord - https://discord.gg/S4bxXpv
+Original - https://github.com/rwmt/Multiplayer
   </description>
   <modDependencies>
     <li>
