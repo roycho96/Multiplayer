@@ -34,7 +34,7 @@ namespace Multiplayer.Client
             // Server already pre-inited in HostWindow
             PrepareLocalServer(settings, fromReplay);
 
-            var serverConn = CreateLocalClient(settings);
+            var serverConn = CreateLocalClient();
             PrepareGame();
             SetGameState(settings);
 
@@ -45,7 +45,12 @@ namespace Multiplayer.Client
             // todo handle sending cmds for hosting from loaded replay?
             SaveLoad.SendGameData(Multiplayer.session.dataSnapshot, false);
 
+            var arbiterNet = settings.arbiter ? PrepareArbiterNetwork() : null;
+
             StartLocalServer();
+
+            if (arbiterNet != null)
+                StartArbiter(arbiterNet);
         }
 
         private static void CreateSession(ServerSettings settings) =>
@@ -177,11 +182,8 @@ namespace Multiplayer.Client
             return faction;
         }
 
-        private static LocalConnection CreateLocalClient(ServerSettings settings)
+        private static LocalConnection CreateLocalClient()
         {
-            if (settings.arbiter)
-                StartArbiter();
-
             var (client, server) = LocalConnection.Paired(Multiplayer.username);
             client.ChangeState(ConnectionStateEnum.ClientPlaying);
             Multiplayer.session.client = client;
@@ -208,13 +210,17 @@ namespace Multiplayer.Client
             Log.Message(text);
         }
 
-        private static void StartArbiter()
+        private static LiteNetArbiterManager PrepareArbiterNetwork()
         {
-            Multiplayer.session.AddMsg("The Arbiter instance is starting...", false);
-
             var arbiterNet = LiteNetArbiterManager.Create(Multiplayer.LocalServer);
             if (arbiterNet == null) throw new Exception("Failed to setup Arbiter network.");
             Multiplayer.LocalServer.netManagers.Add(arbiterNet);
+            return arbiterNet;
+        }
+
+        private static void StartArbiter(LiteNetArbiterManager arbiterNet)
+        {
+            Multiplayer.session.AddMsg("The Arbiter instance is starting...", false);
 
             // Windows still needs a graphics device to initialize game assets.
             string graphicsArg = Application.platform == RuntimePlatform.WindowsPlayer ? "" : " -nographics";
