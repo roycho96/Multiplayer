@@ -95,6 +95,14 @@ namespace Multiplayer.Client
                     defDiff = true;
             }
 
+            var defDiffs = MultiplayerData.localDefInfos
+                .Select(kv => (name: kv.Key, status: defStatusMap[kv.Value]))
+                .Where(kv => kv.status != DefCheckStatus.Ok)
+                .ToList();
+            if (defDiffs.Count > 0)
+                Log.Error("Multiplayer: Definition mismatch with server:\n" +
+                          defDiffs.Join(kv => $"{kv.name}: {kv.status}", "\n"));
+
             var remoteInfo = RemoteData.FromNet(packet);
             // Captured before Complete runs: StopMultiplayerAndClearAllWindows nulls the session
             var connector = Multiplayer.session.connector;
@@ -113,9 +121,7 @@ namespace Multiplayer.Client
                 if (defDiff)
                     Multiplayer.StopMultiplayerAndClearAllWindows();
 
-                var defDiffStr = "\n\n" + MultiplayerData.localDefInfos
-                    .Select(kv => (name: kv.Key, def: kv.Value, status: defStatusMap[kv.Value]))
-                    .Where(kv => kv.status != DefCheckStatus.Ok)
+                var defDiffStr = "\n\n" + defDiffs
                     .Take(10)
                     .Join(kv => $"{kv.name}: {kv.status}", "\n");
 

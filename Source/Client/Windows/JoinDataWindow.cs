@@ -346,7 +346,8 @@ namespace Multiplayer.Client
         private string DiffString()
         {
             var str = "";
-            str += $"RW version match: {remote.remoteMpVersion == MpVersion.Version}, ";
+            str += $"RW version match: {remote.remoteRwVersion == VersionControl.CurrentVersionString}, ";
+            str += $"MP version match: {remote.remoteMpVersion == MpVersion.Version}, ";
             str += $"Mod list diff: {modListDiff}, ";
             str += $"Files match: {!filesRoot.children.Any()}, ";
             str += $"Config sync enabled: {remote.hasConfigs}, ";
