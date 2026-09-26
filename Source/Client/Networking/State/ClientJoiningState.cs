@@ -101,7 +101,7 @@ namespace Multiplayer.Client
                 .ToList();
             if (defDiffs.Count > 0)
                 Log.Error("Multiplayer: Definition mismatch with server:\n" +
-                          defDiffs.Join(kv => $"{kv.name}: {kv.status}", "\n"));
+                          defDiffs.Join(FormatDefDiff, "\n"));
 
             var remoteInfo = RemoteData.FromNet(packet);
             // Captured before Complete runs: StopMultiplayerAndClearAllWindows nulls the session
@@ -109,6 +109,12 @@ namespace Multiplayer.Client
 
             // Delay showing the window for better UX
             OnMainThread.Schedule(Complete, 0.3f);
+
+            string FormatDefDiff((string name, DefCheckStatus status) diff)
+            {
+                var info = MultiplayerData.localDefInfos[diff.name];
+                return $"{diff.name}: {diff.status} (local count={info.count}, hash={info.hash})";
+            }
 
             void Complete()
             {
@@ -123,7 +129,7 @@ namespace Multiplayer.Client
 
                 var defDiffStr = "\n\n" + defDiffs
                     .Take(10)
-                    .Join(kv => $"{kv.name}: {kv.status}", "\n");
+                    .Join(FormatDefDiff, "\n");
 
                 Find.WindowStack.Add(new JoinDataWindow(remoteInfo, connector)
                 {
