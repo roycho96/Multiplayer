@@ -104,6 +104,7 @@ namespace Multiplayer.Client
             {
                 MultiplayerData.CollectDefInfos();
                 Sync.PostInitHandlers();
+                Sync.ValidateAll();
             }, "Loading"); // Right before the events from HandleCommandLine
 
             AutoJoinHandler.JoinIfApplicable();
