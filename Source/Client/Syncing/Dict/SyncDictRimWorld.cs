@@ -868,12 +868,31 @@ namespace Multiplayer.Client
                 (SyncWorker data, ref ThingComp comp) => {
                     if (data.isWriting) {
                         if (comp != null) {
-                            ushort index = (ushort)Array.IndexOf(thingCompTypes, comp.GetType());
-                            data.Write(index);
+                            if (comp.parent?.AllComps == null || comp.props?.compClass == null) {
+                                Log.Error($"ThingComp {comp.GetType()} has no serializable parent or properties");
+                                data.Write(ushort.MaxValue);
+                                return;
+                            }
+
+                            var index = Array.IndexOf(thingCompTypes, comp.GetType());
+                            if (index < 0) {
+                                Log.Error($"Unknown ThingComp type {comp.GetType()}");
+                                data.Write(ushort.MaxValue);
+                                return;
+                            }
+
+                            data.Write((ushort)index);
                             data.Write(comp.parent);
                             var tempComp = comp;
-                            var compIndex = comp.parent.AllComps.Where(x => x.props.compClass == tempComp.props.compClass).FirstIndexOf(x => x == tempComp);
-                            data.Write((ushort)compIndex);
+                            var compIndex = comp.parent.AllComps
+                                .Where(x => x?.props?.compClass == tempComp.props.compClass)
+                                .FirstIndexOf(x => x == tempComp);
+                            if (compIndex < 0) {
+                                Log.Error($"ThingComp {comp.GetType()} is missing from parent {comp.parent}");
+                                data.Write(ushort.MaxValue);
+                            } else {
+                                data.Write((ushort)compIndex);
+                            }
                         } else {
                             data.Write(ushort.MaxValue);
                         }
@@ -882,16 +901,20 @@ namespace Multiplayer.Client
                         if (index == ushort.MaxValue) {
                             return;
                         }
-                        ThingWithComps parent = data.Read<ThingWithComps>();
-                        if (parent == null) {
+
+                        var parentThing = data.Read<Thing>();
+                        var compIndex = data.Read<ushort>();
+
+                        if (index >= thingCompTypes.Length || compIndex == ushort.MaxValue ||
+                            parentThing is not ThingWithComps { AllComps: not null } parent) {
                             return;
                         }
+
                         Type compType = thingCompTypes[index];
-                        var compIndex = data.Read<ushort>();
-                        if (compIndex <= 0)
-                            comp = parent.AllComps.Find(c => c.props.compClass == compType);
+                        if (compIndex == 0)
+                            comp = parent.AllComps.Find(c => c?.props?.compClass == compType);
                         else
-                            comp = parent.AllComps.Where(c => c.props.compClass == compType).ElementAt(compIndex);
+                            comp = parent.AllComps.Where(c => c?.props?.compClass == compType).ElementAtOrDefault(compIndex);
                     }
                 }, true // implicit
             },

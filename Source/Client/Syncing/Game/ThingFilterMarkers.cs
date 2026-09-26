@@ -34,6 +34,10 @@ static class ThingFilterMarkers
         // Because of that, we check if the parent is not null.
         if (selParent == null || selThing is Thing { Map: null } or ThingComp { parent: { Map: null } })
             return;
+
+        if (selParent.GetStoreSettings()?.filter == null)
+            return;
+
         DrawnThingFilter = new TabStorageWrapper(selParent);
     }
 

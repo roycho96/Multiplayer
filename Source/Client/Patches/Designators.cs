@@ -123,7 +123,10 @@ namespace Multiplayer.Client
                 SyncSerialization.WriteSync(data, Find.Selector.SelectedZone);
 
             if (designator is Designator_Plan_Add addDesignator)
+            {
                 SyncSerialization.WriteSync(data, addDesignator.colorDef);
+                SyncSerialization.WriteSync(data, Find.Selector.SelectedPlan);
+            }
 
             if (designator is Designator_Plan_Copy copyDesignator)
                 SyncSerialization.WriteSync(data, copyDesignator.cells);

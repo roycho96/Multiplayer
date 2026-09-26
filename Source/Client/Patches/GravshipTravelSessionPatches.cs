@@ -130,15 +130,26 @@ namespace Multiplayer.Client.Patches
         {
             var gravshipController = Find.GravshipController;
 
-            if (landingMarker == null || landingMarker.Tile == null)
+            if (landingMarker == null || landingMarker.Tile == null ||
+                landingMarker.gravship == null || gravshipController == null)
             {
-                MpLog.Error($"[MP] SyncConfirmGravshipLanding: Marker [{landingMarker != null}] Tile [{landingMarker?.Tile != null}].");
+                MpLog.Error(
+                    $"[MP] SyncBeginLanding skipped: Marker [{landingMarker != null}] " +
+                    $"Tile [{landingMarker?.Tile != null}] Gravship [{landingMarker?.gravship != null}] " +
+                    $"Controller [{gravshipController != null}].");
                 return;
             }
 
-            gravshipController.landingMarker = landingMarker;
-            landingMarker.BeginLanding(gravshipController);
-            gravshipController.landingMarker = null;
+            var previousMarker = gravshipController.landingMarker;
+            try
+            {
+                gravshipController.landingMarker = landingMarker;
+                landingMarker.BeginLanding(gravshipController);
+            }
+            finally
+            {
+                gravshipController.landingMarker = previousMarker;
+            }
 
             if (!TickPatch.currentExecutingCmdIssuedBySelf)
                 SoundDefOf.Gravship_Land.PlayOneShotOnCamera();

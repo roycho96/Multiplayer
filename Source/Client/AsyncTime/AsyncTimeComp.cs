@@ -343,6 +343,7 @@ namespace Multiplayer.Client
         private void HandleDesignator(ByteReader data)
         {
             Container<Area>? prevArea = null;
+            PlanCommandContext.State? prevPlanContext = null;
 
             bool SetState(Designator designator)
             {
@@ -358,7 +359,7 @@ namespace Multiplayer.Client
                 if (designator is Designator_Install)
                 {
                     Thing thing = SyncSerialization.ReadSync<Thing>(data);
-                    if (thing == null) return false;
+                    if (thing == null || thing.Destroyed) return false;
 
                     DesignatorInstall_SetThingToInstall.thingToInstall = thing;
                 }
@@ -373,6 +374,8 @@ namespace Multiplayer.Client
                 if (designator is Designator_Plan_Add designatorPlanAdd)
                 {
                     designatorPlanAdd.colorDef = SyncSerialization.ReadSync<ColorDef>(data);
+                    var selectedPlan = SyncSerialization.ReadSync<Plan>(data);
+                    prevPlanContext = PlanCommandContext.Enter(selectedPlan);
                     designator = designatorPlanAdd;
                 }
 
@@ -406,6 +409,9 @@ namespace Multiplayer.Client
                     Designator_AreaAllowed.selectedArea = prevArea.Value.Inner;
 
                 DesignatorInstall_SetThingToInstall.thingToInstall = null;
+
+                if (prevPlanContext.HasValue)
+                    PlanCommandContext.Restore(prevPlanContext.Value);
             }
 
             var mode = SyncSerialization.ReadSync<DesignatorMode>(data);
@@ -413,6 +419,7 @@ namespace Multiplayer.Client
 
             try
             {
+                if (designator == null) return;
                 if (!SetState(designator)) return;
 
                 if (mode == DesignatorMode.SingleCell)
@@ -431,7 +438,8 @@ namespace Multiplayer.Client
                 else if (mode == DesignatorMode.Thing)
                 {
                     Thing thing = SyncSerialization.ReadSync<Thing>(data);
-                    if (thing == null) return;
+                    if (thing == null || thing.Destroyed) return;
+                    if (designator is Designator_Hunt && thing is not Pawn) return;
 
                     designator.DesignateThing(thing);
                     designator.Finalize(true);

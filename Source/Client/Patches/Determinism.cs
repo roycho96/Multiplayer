@@ -684,6 +684,47 @@ namespace Multiplayer.Client.Patches
         }
     }
 
+    [HarmonyPatch]
+    static class RoundConstructionWorkDone
+    {
+        private static readonly FieldInfo WorkDoneField =
+            AccessTools.Field(typeof(Frame), nameof(Frame.workDone));
+
+        static MethodBase TargetMethod() =>
+            MpMethodUtil.GetLambda(
+                typeof(JobDriver_ConstructFinishFrame),
+                nameof(JobDriver_ConstructFinishFrame.MakeNewToils),
+                lambdaOrdinal: 1);
+
+        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+        {
+            var round = AccessTools.Method(typeof(RoundConstructionWorkDone), nameof(RoundWork));
+            var patched = 0;
+
+            foreach (var instruction in instructions)
+            {
+                if (instruction.opcode == OpCodes.Stfld && instruction.operand as FieldInfo == WorkDoneField)
+                {
+                    yield return new CodeInstruction(OpCodes.Call, round);
+                    patched++;
+                }
+
+                yield return instruction;
+            }
+
+            if (patched != 1)
+                Log.Error($"Construction work rounding patch expected 1 write, found {patched}");
+        }
+
+        public static float RoundWork(float value)
+        {
+            if (Multiplayer.Client == null)
+                return value;
+
+            return Mathf.Round(value * 10000f) / 10000f;
+        }
+    }
+
     [HarmonyPatch(typeof(PawnsArrivalModeWorker_EmergeFromWater), nameof(PawnsArrivalModeWorker_EmergeFromWater.Arrive))]
     static class PawnsArrivalModeWorker_EmergeFromWater_FixCurrentMapUsage
     {
