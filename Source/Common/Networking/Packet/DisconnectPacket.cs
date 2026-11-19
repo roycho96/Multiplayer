@@ -9,6 +9,7 @@ public record struct ServerDisconnectPacket : IPacket
     public void Bind(PacketBuffer buf)
     {
         buf.BindEnum(ref reason);
+        data ??= [];
         buf.BindRemaining(ref data);
     }
 }

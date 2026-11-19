@@ -61,6 +61,19 @@ public class ProtocolCompatibilityTest
     }
 
     [Test]
+    public void StartingServerCanSendAReasonWithoutAdditionalData()
+    {
+        var encoded = new ServerDisconnectPacket { reason = MpDisconnectReason.ServerStarting }.Serialize();
+        var reader = new ByteReader(encoded.data);
+        var decoded = new ServerDisconnectPacket();
+        decoded.Bind(new PacketReader(reader));
+
+        Assert.That(decoded.reason, Is.EqualTo(MpDisconnectReason.ServerStarting));
+        Assert.That(decoded.data, Is.Empty);
+        Assert.That(reader.Left, Is.Zero);
+    }
+
+    [Test]
     public void ForkProtocolAndDisplayVersionRemainDistinct()
     {
         Assert.That(MpVersion.Protocol, Is.EqualTo(57009603));
