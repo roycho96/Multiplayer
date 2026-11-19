@@ -212,18 +212,20 @@ namespace Multiplayer.Client
             OpinionInBuilding.desyncStackTraceHashes.Add(hash);
         }
 
-        public void TryAddStackTraceForDesyncLogRaw(StackTraceLogItemRaw item, int depth, int hashIn, string moreInfo = null)
+        public void TryAddStackTraceForDesyncLogRaw(StackTraceLogItemRaw item)
         {
-            if (!ShouldCollect) return;
+            if (!ShouldCollect)
+            {
+                item.Dispose();
+                return;
+            }
 
             OpinionInBuilding.TryMarkSimulating();
 
-            item.depth = depth;
             item.ticksGame = Find.TickManager.ticksGameInt;
             item.rngState = Rand.StateCompressed;
             item.tick = TickPatch.Timer;
             item.factionName = Faction.OfPlayer?.Name ?? string.Empty;
-            item.moreInfo = moreInfo;
 
             var thing = ThingContext.Current;
             if (thing != null)
@@ -232,7 +234,8 @@ namespace Multiplayer.Client
                 item.thingId = thing.thingIDNumber;
             }
 
-            var hash = Gen.HashCombineInt(hashIn, depth, (int)(item.rngState >> 32), (int)item.rngState);
+            // Managed call stacks differ between runtimes and compiler tiers.
+            var hash = Gen.HashCombineInt((int)(item.rngState >> 32), (int)item.rngState);
             item.hash = hash;
 
             OpinionInBuilding.desyncStackTraces.Add(item);

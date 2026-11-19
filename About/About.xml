@@ -3,28 +3,28 @@
   <packageId>rwmt.Multiplayer</packageId>
   <name>Multiplayer (roycho96 fork)</name>
   <supportedVersions>
-    <li>1.6</li>
+    <li>1.7</li>
   </supportedVersions>
   <author>RimWorld Multiplayer Team (forked by roycho96)</author>
   <url>https://github.com/roycho96/Multiplayer</url>
   <modVersion></modVersion> <!-- filled out by workshop_bundler.sh -->
-  <description>roycho96 public fork of RimWorld Multiplayer, based on upstream dev e760d30.
+  <description>roycho96 public fork of RimWorld Multiplayer, based on upstream dev ddfccdb.
 
 Retains the original team's work and license. Fork source: https://github.com/roycho96/Multiplayer
 
-This build uses a separate network and replay protocol. All players must use the same fork build and mod versions. Use revision 1 of the roycho96 Multiplayer Compatibility fork when compatibility patches are needed.
+This experimental RimWorld 1.7 build uses traditional deterministic lockstep. All players must use the same fork build and mod versions. Use revision 1 of the roycho96 Multiplayer Compatibility fork when compatibility patches are needed.
 Older multiplayer replays require their original mod versions. Save to a single-player .rws file before moving an existing game to this build.
 
-Place below Core, expansions, Harmony and Prepatcher. Enable only one mod with packageId rwmt.Multiplayer.
+Place below Core, expansions and Harmony 3. Enable only one mod with packageId rwmt.Multiplayer.
 
 FAQ - https://hackmd.io/@rimworldmultiplayer/docs/
 Original - https://github.com/rwmt/Multiplayer
   </description>
   <modDependencies>
     <li>
-      <packageId>zetrith.prepatcher</packageId>
-      <displayName>Prepatcher</displayName>
-      <steamWorkshopUrl>steam://url/CommunityFilePage/2934420800</steamWorkshopUrl>
+      <packageId>brrainz.harmony</packageId>
+      <displayName>Harmony 3</displayName>
+      <steamWorkshopUrl>steam://url/CommunityFilePage/2009463077</steamWorkshopUrl>
     </li>
   </modDependencies>
   <loadAfter>
@@ -34,7 +34,6 @@ Original - https://github.com/rwmt/Multiplayer
     <li>Ludeon.RimWorld.Biotech</li>
     <li>Ludeon.RimWorld.Anomaly</li>
     <li>Ludeon.RimWorld.Odyssey</li>
-    <li>zetrith.prepatcher</li>
     <li>brrainz.harmony</li>
   </loadAfter>
   <loadBefore>

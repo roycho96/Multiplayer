@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <RimWorldRefVersion>1.7.5011-unstable</RimWorldRefVersion>
+    <MultiplayerHarmonyVersion>3.0.0-rc.5</MultiplayerHarmonyVersion>
+  </PropertyGroup>
+</Project>

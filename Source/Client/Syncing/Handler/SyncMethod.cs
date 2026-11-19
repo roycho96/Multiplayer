@@ -5,8 +5,8 @@ using HarmonyLib;
 using Multiplayer.API;
 using Multiplayer.Client.Util;
 using Multiplayer.Common;
-using MultiplayerLoader;
 using Verse;
+using MethodInvoker = HarmonyLib.MethodInvoker;
 
 namespace Multiplayer.Client
 {
@@ -20,7 +20,7 @@ namespace Multiplayer.Client
     public delegate void SyncMethodWriter(object obj, SyncType type, string debugInfo);
 
 
-    public class SyncMethod : SyncHandler, ISyncMethod, ISyncMethodForPrepatcher
+    public class SyncMethod : SyncHandler, ISyncMethod
     {
         public readonly Type targetType;
         public readonly MethodInfo method;
@@ -127,7 +127,7 @@ namespace Multiplayer.Client
 
             int mapId = map?.uniqueID ?? ScheduledCommand.Global;
             writer.Log.Node("Map id: " + mapId);
-            Multiplayer.WriterLog.AddCurrentNode(writer);
+            Multiplayer.WriterLog?.AddCurrentNode(writer);
 
             SendSyncCommand(mapId, writer);
 

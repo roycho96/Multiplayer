@@ -1,60 +1,47 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-VERSION=$(grep -Po '(?<=SimpleVersion = ")[0-9\.]+' Source/Common/Version.cs)
+root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+cd -- "$root"
 
-git submodule update --init --recursive || { echo 'git submodule update FAILED' ; exit 1; }
-
-cd Source || exit
-dotnet build --configuration Release || { echo 'dotnet build FAILED' ; exit 1; }
-cd ..
-
-rm -rf Multiplayer/
-mkdir -p Multiplayer
-cd Multiplayer || exit
-
-# About/ and Textures/ are shared between all versions
-cp -r ../About ../Textures .
-
-cat <<EOF > LoadFolders.xml
-<loadFolders>
-  <v1.6>
-    <li>/</li>
-    <li>1.6</li>
-  </v1.6>
-  <v1.5>
-    <li>/</li>
-    <li>1.5</li>
-  </v1.5>
-</loadFolders>
-EOF
-
-GIT_COMMIT=$(git rev-parse --short HEAD 2>&1)
-GIT_COMMIT_STATUS=$?
-if [ $GIT_COMMIT_STATUS -eq 0 ]; then
-  FULL_VERSION="${VERSION} (${GIT_COMMIT})"
-else
-  FULL_VERSION="${VERSION}"
-  echo "WARN: Failed to check git commit: ${GIT_COMMIT}"
+output=${MP_PACKAGE_DIR:-"$root/Multiplayer"}
+product=${MP_MOD_OUTPUT_PATH:-"$root/1.7"}
+if [[ -e "$output" || -L "$output" ]]; then
+    echo "Package destination already exists: $output" >&2
+    exit 1
 fi
-sed -i "/<supportedVersions>/ a \ \ \ \ <li>1.5</li>" About/About.xml
-sed -i "s/<modVersion>.*<\/modVersion>.*\$/<modVersion>${FULL_VERSION}<\/modVersion>/" About/About.xml
 
-# The current version
-mkdir -p 1.6
-cp -r ../Assemblies ../AssembliesCustom ../Defs ../Languages 1.6/
-rm -f 1.6/Languages/.git 1.6/Languages/LICENSE 1.6/Languages/README.md
+case "${1:-}" in
+    '') dotnet build Source/Multiplayer.sln --configuration Release -p:ModOutputPath="$product" ;;
+    --stage-only) ;;
+    *) echo "Usage: $0 [--stage-only]" >&2; exit 2 ;;
+esac
 
-# Past versions
-git clone -b rw-1.5 --depth=1 --single-branch --recurse-submodules https://github.com/rwmt/Multiplayer.git 1.5 || { echo 'Git cloning 1.5 FAILED' ; exit 1; }
-shopt -s extglob
-shopt -s dotglob
-rm -rf -- 1.5/!(Languages|Assemblies|AssembliesCustom|Defs)
-rm -f 1.5/Languages/.git 1.5/Languages/LICENSE 1.5/Languages/README.md
+for dll in MultiplayerLoader Multiplayer MultiplayerCommon 0MultiplayerAPI; do
+    if [[ ! -f "$product/Assemblies/$dll.dll" ]]; then
+        echo "Missing required assembly: $product/Assemblies/$dll.dll" >&2
+        exit 1
+    fi
+done
+for dll in 0Harmony Assembly-CSharp UnityStubs; do
+    if [[ -e "$product/Assemblies/$dll.dll" ]]; then
+        echo "Unexpected game or Harmony assembly: $product/Assemblies/$dll.dll" >&2
+        exit 1
+    fi
+done
+if compgen -G "$product/Assemblies/Authority.*.dll" >/dev/null || [[ ! -d "$root/Languages/English" ]]; then
+    echo 'Unexpected authority assemblies or uninitialized Languages submodule.' >&2
+    exit 1
+fi
 
-cd ..
-
-# Zip for Github releases
-rm -f Multiplayer-v$VERSION.zip
-zip -r -q Multiplayer-v$VERSION.zip Multiplayer
-
-echo "Ok, $PWD/Multiplayer-v$VERSION.zip ready for uploading to Workshop"
+base_version=$(sed -nE 's/.*SimpleVersion = "([0-9.]+)".*/\1/p' Source/Common/Version.cs)
+revision=$(git rev-parse --short HEAD)
+version="$base_version ($revision)"
+mkdir -p -- "$(dirname -- "$output")"
+mkdir -- "$output"
+cp -r -- About Defs Textures LoadFolders.xml "$output/"
+mkdir -- "$output/Languages" "$output/1.7"
+tar --exclude=.git -C "$root/Languages" -cf - . | tar -C "$output/Languages" -xf -
+cp -r -- "$product/Assemblies" "$output/1.7/"
+sed -i "s#<modVersion>[^<]*</modVersion>#<modVersion>${version}</modVersion>#" "$output/About/About.xml"
+echo "Staged Multiplayer mod: $output"

@@ -1,8 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Reflection;
+using HarmonyLib;
 using UnityEngine;
 using Verse;
 
@@ -16,67 +15,21 @@ namespace MultiplayerLoader
 
         public Multiplayer(ModContentPack content) : base(content)
         {
-            instance = this;
-            LoadAssembliesCustom();
+            var harmony = typeof(Harmony).Assembly;
+            var version = harmony.GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version;
+            if (!Version.TryParse(version, out var parsed) || parsed.Major < 3)
+                throw new InvalidOperationException($"Multiplayer for RimWorld 1.7 requires Harmony 3 (loaded {version ?? harmony.FullName}).");
 
-            FindTypeInAppDomain("Multiplayer.Client.Multiplayer")!.GetMethod("InitMultiplayer")!.Invoke(null, [content]);
+            instance = this;
+            var assembly = Content.assemblies.loadedAssemblies.FirstOrDefault(assembly => assembly.GetName().Name == "Multiplayer")
+                ?? throw new InvalidOperationException("Missing Multiplayer.dll in the mod's 1.7 Assemblies folder.");
+            assembly.GetType("Multiplayer.Client.Multiplayer", throwOnError: true)!.GetMethod("InitMultiplayer")!.Invoke(null, [content]);
         }
 
         public static Type? FindTypeInAppDomain(string typeFullName) =>
             AppDomain.CurrentDomain.GetAssemblies()
                 .Select(assembly => assembly.GetType(typeFullName, throwOnError: false, ignoreCase: false))
                 .FirstOrDefault(type => type != null);
-
-        private void LoadAssembliesCustom()
-        {
-            var assemblies = new List<Assembly>();
-
-            foreach (FileInfo item in ModContentPack
-                         .GetAllFilesForModPreserveOrder(Content, "AssembliesCustom/", e => e.ToLower() == ".dll")
-                         .Select(f => f.Item2))
-            {
-                var asmName = AssemblyName.GetAssemblyName(item.FullName);
-                var assembly = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(asm => asm.GetName().FullName == asmName.FullName);
-
-                if (assembly == null)
-                    try
-                    {
-                        // This would work with Assembly.Load the same as ModAssemblyHandler does it, but then the .dll
-                        // files are locked and cannot be replaced when a game instance is already running. This way it's
-                        // possible to keep a game instance open and just rebuild and reopen another instance without any
-                        // issues with replacing the dll files.
-
-                        byte[] rawAssembly = File.ReadAllBytes(item.FullName);
-                        FileInfo fileInfo = new FileInfo(Path.ChangeExtension(item.FullName, "pdb"));
-
-                        if (fileInfo.Exists)
-                        {
-                            byte[] rawSymbolStore = File.ReadAllBytes(fileInfo.FullName);
-                            assembly = AppDomain.CurrentDomain.Load(rawAssembly, rawSymbolStore);
-                        }
-                        else
-                        {
-                            assembly = AppDomain.CurrentDomain.Load(rawAssembly);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Error($"Exception loading {item.Name}: {ex}");
-                        break;
-                    }
-
-                assemblies.Add(assembly);
-            }
-
-            AppDomain.CurrentDomain.AssemblyResolve += (_, args) =>
-                Content.assemblies.loadedAssemblies.FirstOrDefault(a => a.FullName == args.Name);
-
-            foreach (var asm in assemblies.Where(asm => Content.assemblies.AssemblyIsUsable(asm)))
-            {
-                GenTypes.ClearCache();
-                Content.assemblies.loadedAssemblies.Add(asm);
-            }
-        }
 
         public override string SettingsCategory() => "Multiplayer";
 

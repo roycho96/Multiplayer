@@ -1,6 +1,6 @@
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using HarmonyLib;
 using Multiplayer.Client.Patches;
 using Multiplayer.Common;
@@ -26,28 +26,27 @@ namespace Multiplayer.Client.Desyncs
 
         public static int acc;
 
-        private static bool SupportsDeferredStackTracing =>
-            RuntimeInformation.ProcessArchitecture is Architecture.X64 or Architecture.X86;
-
         public static void Postfix()
         {
-            if (Native.LmfPtr == 0) return;
             if (!ShouldAddStackTraceForDesyncLog()) return;
 
             var logItem = StackTraceLogItemRaw.GetFromPool();
-            var trace = logItem.raw;
-            int hash = 0;
-            // Skip this (DeferredStackTracing.Postfix) frame. Keeping it in the trace doesn't provide any value.
-            int depth = DeferredStackTracingImpl.TraceImpl(trace, ref hash, skipFrames: 1);
+            if (Multiplayer.settings.desyncTracingMode == DesyncTracingMode.Slow)
+            {
+                var trace = new StackTrace(1, false);
+                logItem.managedTrace = trace.ToString();
+                logItem.depth = trace.FrameCount;
+                if (logItem.depth > maxTraceDepth)
+                    maxTraceDepth = logItem.depth;
+            }
 
-            Multiplayer.game.sync.TryAddStackTraceForDesyncLogRaw(logItem, depth, hash);
+            Multiplayer.game.sync.TryAddStackTraceForDesyncLogRaw(logItem);
 
             acc++;
         }
 
         public static bool ShouldAddStackTraceForDesyncLog()
         {
-            if (!SupportsDeferredStackTracing) return false;
             if (Multiplayer.Client == null) return false;
             if (Multiplayer.settings.desyncTracingMode == DesyncTracingMode.None) return false;
             if (Multiplayer.game == null) return false;

@@ -54,8 +54,7 @@ jobs:
     - name: Package files
       run: |
         sed -i "s/<name>\(.*\)<\/name>\$/<name>\1 [Continuous]<\/name>/" About/About.xml
-        mkdir -p output/Multiplayer
-        mv About/ Assemblies/ AssembliesCustom/ Defs/ Languages/ Textures/ output/Multiplayer
+        MP_PACKAGE_DIR=output/Multiplayer ./workshop_bundler.sh --stage-only
         cd output/
         zip -r ../Multiplayer-beta.zip Multiplayer/
         zip -r ../Server-beta.zip Server/

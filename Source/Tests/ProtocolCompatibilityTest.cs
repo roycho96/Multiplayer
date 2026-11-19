@@ -45,6 +45,7 @@ public class ProtocolCompatibilityTest
     [TestCase(56)]
     [TestCase(57)]
     [TestCase(56009601)]
+    [TestCase(57009602)]
     public void IncompatibleProtocolIsRejectedWithForkIdentity(int protocol)
     {
         var accepted = HandleProtocol(new ClientProtocolPacket(protocol));
@@ -62,9 +63,9 @@ public class ProtocolCompatibilityTest
     [Test]
     public void ForkProtocolAndDisplayVersionRemainDistinct()
     {
-        Assert.That(MpVersion.Protocol, Is.EqualTo(57009602));
+        Assert.That(MpVersion.Protocol, Is.EqualTo(57009603));
         Assert.That(MpVersion.SimpleVersion, Is.EqualTo("0.11.5"));
-        Assert.That(MpVersion.ForkVersion, Is.EqualTo("0.11.5-roycho96.2"));
+        Assert.That(MpVersion.ForkVersion, Is.EqualTo("0.11.5-roycho96.2-rw17.1"));
         Assert.That(MpVersion.Version, Does.StartWith(MpVersion.ForkVersion));
     }
 

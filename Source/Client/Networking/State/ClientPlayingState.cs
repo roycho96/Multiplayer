@@ -189,7 +189,7 @@ namespace Multiplayer.Client
                     {
                         playerId = packet.playerId,
                         rawTraces = GZipStream.CompressString(response),
-                        rawJittedMethods = GZipStream.CompressString(JittedMethods.GetJittedMethodsString())
+                        rawJittedMethods = GZipStream.CompressString(string.Empty)
                     });
             }
             else if (packet.mode == ServerTracesPacket.Mode.Transfer)

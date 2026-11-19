@@ -217,13 +217,7 @@ namespace Multiplayer.Client
         [DebugAction(MultiplayerLocalCategory, name = "Trigger desync", allowedGameStates = AllowedGameStates.Playing)]
         public static void TriggerDesync()
         {
-            var logItem = StackTraceLogItemRaw.GetFromPool();
-            var trace = logItem.raw;
-            int hash = 0;
-            int depth = DeferredStackTracingImpl.TraceImpl(trace, ref hash);
-
             Multiplayer.game.asyncWorldTimeComp.randState++;
-            Multiplayer.game.sync.TryAddStackTraceForDesyncLogRaw(logItem, depth, hash);
         }
 
         [DebugAction(MultiplayerLocalCategory, name = "Show desync window", allowedGameStates = AllowedGameStates.Playing)]
@@ -280,12 +274,6 @@ namespace Multiplayer.Client
                     .Join(delimiter: "\n")
                 );
             }
-        }
-
-        [DebugAction(MultiplayerCategory, "Print jitted methods", allowedGameStates = /* all */ AllowedGameStates.Invalid)]
-        public static void PrintJittedMethods()
-        {
-            Log.Message(JittedMethods.GetJittedMethodsString());
         }
 
         [DebugAction(MultiplayerCategory, "Dump Def Types", allowedGameStates = AllowedGameStates.Entry)]
@@ -359,20 +347,6 @@ namespace Multiplayer.Client
             Debug.Log(__originalMethod.FullDescription());
         }
 
-        [DebugAction(MultiplayerLocalCategory, "Dump addr info table", allowedGameStates = /* all */ AllowedGameStates.Invalid)]
-        public static void DumpAddrInfoTable()
-        {
-            Log.Message($"Dumping address info table {DeferredStackTracingImpl.hashTable.Entries}");
-            foreach (var addrInfo in DeferredStackTracingImpl.hashTable)
-            {
-                if (addrInfo.nameHash == 0) continue;
-                var normalized = $"`{Native.MethodNameNormalizedFromAddr(addrInfo.addr, true)}`";
-                var normal = Native.MethodNameFromAddr(addrInfo.addr, true);
-                var hash = addrInfo.nameHash;
-                Log.Message($"NORM: {normalized,-130} H:{hash,14} R:`{normal}`");
-            }
-        }
-
         [DebugAction(MultiplayerLocalCategory, "Show mod compat", allowedGameStates = AllowedGameStates.Playing)]
         public static void ShowModCompatDialog()
         {
@@ -381,17 +355,6 @@ namespace Multiplayer.Client
         }
 
 #if DEBUG
-
-        [DebugOutput]
-        public static unsafe void PrintInlined()
-        {
-            foreach (var m in Harmony.GetAllPatchedMethods())
-            {
-                // method->inline_info
-                if ((*(byte*)(m.MethodHandle.Value + 32) & 1) == 1)
-                    Log.Warning($"Mono inlined {m.FullDescription()} {*(byte*)(m.MethodHandle.Value + 32) & 1} {*((ushort*)(m.MethodHandle.Value) + 1) & (ushort)MethodImplOptions.NoInlining}");
-            }
-        }
 
         [DebugOutput(true)]
         public static void PrintThingListers()

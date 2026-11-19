@@ -6,9 +6,9 @@ namespace Multiplayer.Common
     public static class MpVersion
     {
         public const string SimpleVersion = "0.11.5";
-        public const string ForkVersion = SimpleVersion + "-roycho96.2";
-        // The fork adds SelectedPlan command data and uses upstream protocol 57's join metadata.
-        public const int Protocol = 57009602;
+        public const string ForkVersion = SimpleVersion + "-roycho96.2-rw17.1";
+        // The 1.6 fork uses a different game simulation and cannot join a 1.7 lockstep session.
+        public const int Protocol = 57009603;
         public const int ForkCompatibilityRevision = 1;
 
         public static readonly string? GitHash = Assembly.GetExecutingAssembly()
